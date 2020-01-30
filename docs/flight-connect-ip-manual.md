@@ -39,7 +39,7 @@ Flight Connect: Instruments & Panels is an application that allows you to create
 
 
 ### The instruments list
-An instruments list shows the list of instruments available. All instruments should be located at "Flight-Connect-Instrument" folder. If no instruments are shown on the list (this could also happened when the folder is moved), the "Flight-Connect-Instrument" folder shall be linked by using  [Instruments folder location](#Instruments folder location)  button.   
+An instruments list shows the list of instruments available. All instruments should be located at "Flight-Connect-Instrument" folder. If no instruments are shown on the list (this could happen when the folder is moved), the "Flight-Connect-Instrument" folder shall be linked by using  [Instruments folder location](#Instruments folder location)  button.   
 
 ![The instruments list](manual-screenshots/instruments.png)
 
@@ -105,7 +105,7 @@ To use a browser that is not your default browser, open the instrument folder an
 
 ### Open instrument in folder
 
-To reveal and instrument in its containing folder, click the `Reveal in Finder` / `Reveal in Explorer` button (Mac / Windows).
+To reveal an instrument in its containing folder, click the `Reveal in Finder` / `Reveal in Explorer` button (Mac / Windows).
 
 <a name="Open instrument on remote computer or device"></a>
 
