@@ -1,35 +1,35 @@
-#Flight-Connect: Instruments & Panels
+# Flight-Connect: Instruments & Panels
 
 Flight Connect: Instruments & Panels is an application that allows you to create instrument panels with saved positions, as well as test the instruments you develop by allowing you to send your own dataref values.
 
-##Contents
+## Contents
 
-* [Instruments](#Instruments)
- * [The instruments list](#The instruments list) 
- * [Opening Instruments](#Opening Instruments)
- * [Instrument focus](#Instrument focus)
- * [Setting datarefs](#Setting datarefs)
- * [Moving instrument windows](#Moving instrument windows)
- * [Closing instruments](#Closing instruments)
- * [Open instrument in browser](#Open instrument in browser)
- * [Show instrument in folder](#Open instrument in folder)
- * [Open instrument on remote computer or device](#Open instrument on remote computer or device)
-* [Connecting to X-Plane](#Connecting to X-Plane)
- * [Scanning for hosts](#Scanning for hosts)
- * [Selecting host](#Selecting host)
-* [Panels](#Panels)
- * [The panels list](#The panels list) 
- * [Creating a new panel](#Creating a new panel)
- * [Preview mode](#Preview mode)
- * [Editing mode](#Editing mode)
-  - [Adding instruments to panel](#Adding instruments to panel)
-  - [Positioning instruments](#Positioning instruments)
-  - [Panel options](#Panel options)
-* [Preferences](#Preferences)
- * [Instruments folder location](#Instruments folder location) 
- * [Automatically connect to X-Plane if available](#Automatically connect to X-Plane if available)
- * [Minimize main window after panel opens](#Minimize main window after panel opens)
- * [HTTP port](#HTTP port)
+* [Instruments](#instruments)
+* [The instruments list](#the-instruments-list)-
+* [Opening Instruments](#opening-instruments)
+* [Instrument focus](#instrument-focus)
+* [Setting datarefs](#setting-datarefs)
+* [Moving instrument windows](#moving-instrument-windows)
+* [Closing instruments](#closing-instruments)
+* [Open instrument in browser](#open-an-instrument-in-browser)
+* [Show instrument in folder](#open-instrument-in-folder)
+* [Open instrument on remote computer or device](#open-instrument-on-remote-computer-or-device)
+* [Connecting to X-Plane](#connecting-to-x-plane)
+ * [Scanning for hosts](#scanning-for-hosts)
+ * [Selecting host](#selecting-a-host)
+* [Panels](#panels)
+ * [The panels list](#the-panels-list)-
+ * [Creating a new panel](#creating-a-new-panel)
+ * [Preview mode](#preview-mode)
+ * [Editing mode](#editing-mode)
+  - [Adding instruments to panel](#adding-instruments-to-panel)
+  - [Positioning instruments](#positioning-instruments)
+  - [Panel options](#panel-options)
+* [Preferences](#preferences)
+ * [Instruments folder location](#instruments-folder-location)-
+ * [Automatically connect to X-Plane if available](#automatically-connect-to-x-plane-if-available)
+ * [Minimize main window after panel opens](#minimize-main-window-after-panel-opens)
+ * [HTTP port](#http-port)
 
 <a name="Instruments"></a>
 
