@@ -189,6 +189,10 @@ You forgot to, or incorrectly loaded host.js or your shared folder is missing. T
 
 The most likely cause of this is a typo in, or invalid dataref name in your subscription call. A way to debug this is to connect your instrument to the flight connect application. If it is not a recognised dataref then there will be no description or unit available.
 
+### My instrument doesn't work and I'm using Safari
+
+Safari can sometimes have issues loading instruments from file. Safari can however load instruments when opened with the 'open in browser' button in Flight-Connect. Otherwise use Firefox or Chrome for development.
+
 ## Connecting your instrument to X-Plane
 1. Place the Flight-Connect plugin inside your X-Plane plugins directory. (```X-Plane 11/Resources/plugins```)
 2. Launch X-Plane
