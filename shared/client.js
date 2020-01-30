@@ -303,6 +303,12 @@ class AppConnection {
     }
 }
 
+/**
+ * Set element width and height CSS properties
+ * @param {element} element 
+ * @param {number} width 
+ * @param {number} height 
+ */
 function utils_setElemSize(element, width, height) {
     element.style.width = `${width}px`;
     element.style.height = `${height}px`;
@@ -310,7 +316,7 @@ function utils_setElemSize(element, width, height) {
 
 /**
  * Get the length of the shortest side of the window
- * @returns {Number}
+ * @returns {number}
  */
 function utils_getWindowShortestSideLength({ margin = 0 } = {}) {
     const width = window.innerWidth;
@@ -320,9 +326,9 @@ function utils_getWindowShortestSideLength({ margin = 0 } = {}) {
 
 /**
 * Center an element in the middle of the window, given the size you want the element to be.
- * @param {Element} elem 
- * @param {Number} elementWidth 
- * @param {Number} elementHeight
+ * @param {element} elem 
+ * @param {number} elementWidth 
+ * @param {number} elementHeight
  */
 function utils_centerElement(elem, elementWidth, elementHeight) {
     elem.style.position = "absolute";
@@ -334,9 +340,9 @@ function utils_centerElement(elem, elementWidth, elementHeight) {
 
 /**
  * Constrain a value to be between min and max
- * @param {Number} value Input value
- * @param {Number} min Returned if input value < min
- * @param {Number} max Returned if input value > max
+ * @param {number} value Input value
+ * @param {number} min Returned if input value < min
+ * @param {number} max Returned if input value > max
  */
 function utils_constrain(value, min, max) {
     value = Number(value);
@@ -352,9 +358,9 @@ function utils_constrain(value, min, max) {
 /**
  * The absolute value of the amount of *value* constrained between max and min.
  * @example utils_amountBetween(75, 50, 100) -> 25
- * @param {Number} value 
- * @param {Number} min 
- * @param {Number} max 
+ * @param {number} value 
+ * @param {number} min 
+ * @param {number} max 
  */
 function utils_amountBetween(value, min, max) {
 	if (value < min)
@@ -369,8 +375,8 @@ function utils_amountBetween(value, min, max) {
 /**
  * Rotate an element using the CSS transform property
  * 
- * @param {Element} elem The element to rotate
- * @param {Number} degrees Degrees to rotate the element
+ * @param {element} elem The element to rotate
+ * @param {number} degrees Degrees to rotate the element
  */
 function utils_rotate(elem, degrees) {
     elem.style.transform = `rotate(${degrees}deg)`;
@@ -379,7 +385,7 @@ function utils_rotate(elem, degrees) {
 /**
  * Get the x and y position of an element in pixels from the origin (top left)
  * 
- * @param {Element} elem 
+ * @param {element} elem 
  * @returns {{x: Number, y: Number}}
  */
 function utils_getElemPos(elem) {
@@ -394,9 +400,9 @@ function utils_getElemPos(elem) {
  * Set the x and y position of an element in pixels from the origin (top left)
  * Uses CSS 'left' and 'top' attributes with position absolute.
  * 
- * @param {Element} elem The element to set the position of
- * @param {Number} x The X position in pixels to set
- * @param {Number} y The Y position in pixels to set
+ * @param {element} elem The element to set the position of
+ * @param {number} x The X position in pixels to set
+ * @param {number} y The Y position in pixels to set
  */
 function utils_setElemPos(elem, x, y) {
     elem.style.position = 'absolute';
@@ -406,9 +412,9 @@ function utils_setElemPos(elem, x, y) {
 
 /**
  * Moves an element by the given number of pixels from it's current position
- * @param {Element} elem The element to move
- * @param {Number} x Pixels to move on X axis
- * @param {Number} y Pixels to move on Y axis
+ * @param {element} elem The element to move
+ * @param {number} x Pixels to move on X axis
+ * @param {number} y Pixels to move on Y axis
  */
 function utils_moveElemBy(elem, x, y) {
     let startPos = utils_getElemPos(elem);
@@ -419,7 +425,7 @@ function utils_moveElemBy(elem, x, y) {
 
 /**
  * Sets an element's css visiblity property to 'visible' or 'hidden'
- * @param {Element} elem The element
+ * @param {element} elem The element
  * @param {Boolean} bool Whether or not to make it visible or invisible
  */
 function utils_setVisible(elem, bool) {
@@ -430,8 +436,8 @@ function utils_setVisible(elem, bool) {
 
 /**
  * Convert radians to degrees
- * @param {Number} radians 
- * @returns {Number} degrees
+ * @param {number} radians 
+ * @returns {number} degrees
  */
 function utils_radToDeg(radians) {
 
@@ -440,8 +446,8 @@ function utils_radToDeg(radians) {
 
 /**
  * Convert degrees to radians
- * @param {Number} degrees 
- * @returns {Number} radians
+ * @param {number} degrees 
+ * @returns {number} radians
  */
 function utils_degToRad(degrees) {
 
@@ -454,7 +460,7 @@ function utils_degToRad(degrees) {
  * Sets the innerHTML attribute of the element to the given text
  * For more information on this see: https://www.w3schools.com/jsref/prop_html_innerhtml.asp
  * 
- * @param {Element} elem The element
+ * @param {element} elem The element
  * @param {String} text Inner HTML content to set
  */
 function utils_setText(elem, text) {
@@ -465,9 +471,9 @@ function utils_setText(elem, text) {
 /**
  * Sets the inner text of an element to a number with a specified number of decimal places
  * 
- * @param {Element} elem The element
- * @param {Number} number The number 
- * @param {Number} dplaces The number of decimal places to show
+ * @param {element} elem The element
+ * @param {number} number The number 
+ * @param {number} dplaces The number of decimal places to show
  */
 function utils_setTextNumeric(elem, number, dplaces) {
     utils_setText(elem, Number(number).toFixed(dplaces));
@@ -477,7 +483,7 @@ function utils_setTextNumeric(elem, number, dplaces) {
  * Set the colour of an element's text using the CSS color property 
  * Can be name of colour like 'red' or hex value like '#FF0000'
  * 
- * @param {Element} elem 
+ * @param {element} elem 
  * @param {String} colour 
  */
 function utils_setTextColour(elem, colour) {
@@ -485,8 +491,16 @@ function utils_setTextColour(elem, colour) {
     elem.style.color = colour;
 }
 
-// For more details on attributes see:
-// https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text#Attributes
+/**
+ * Create SVG text element at position x, y with the given attributes
+ * For more details on attributes see:
+ * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text#Attributes
+ * @param {string} content Text content
+ * @param {number} x 
+ * @param {number} y 
+ * @param {object} attributes 
+ */
+
 function utils_createSVGTextElement(content, x, y, attributes = {}) {
 
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -502,7 +516,17 @@ function utils_createSVGTextElement(content, x, y, attributes = {}) {
     return text;
 }
 
-// https://developer.mozilla.org/en-US/docs/Web/SVG/Element/rect
+/**
+ * /**
+ * Create SVG rect element with the given attributes
+ * For more details on attributes see:
+ * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/rect
+ * @param {number} x 
+ * @param {number} y 
+ * @param {number} width 
+ * @param {number} height 
+ * @param {object} attributes 
+ */
 function utils_createSVGRectElement(x, y, width, height, attributes = {}) {
     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     rect.setAttribute('x', x);
@@ -521,7 +545,7 @@ function utils_createSVGRectElement(x, y, width, height, attributes = {}) {
 
 /**
  * Loop a piece of audio
- * @param {Element} audio 
+ * @param {element} audio 
  */
 function utils_loopAudio(audio) {
     audio.loop = true;
@@ -530,7 +554,7 @@ function utils_loopAudio(audio) {
 
 /**
  * Stop looping the audio element
- * @param {Element} audio 
+ * @param {element} audio 
  */
 function utils_stopLooping(audio) {
     audio.loop = false;
