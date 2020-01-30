@@ -1,0 +1,18 @@
+* {
+    user-select: none; /* Disable user highlighting */
+}
+
+img {
+    pointer-events: none; /* Disable dragging and other events on images */
+}
+
+body {
+    position: fixed;
+    margin: 0;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background-color: black;
+    -webkit-app-region: drag; /* Enable instruments to be dragged around in Flight-Connect */
+}
