@@ -147,7 +147,7 @@ Providing metadata for your instrument is primarily useful for when you're using
 
 ### Fields
 
-```json
+```javascript
 {
 	name: String,
 	description: String,
@@ -158,18 +158,18 @@ Providing metadata for your instrument is primarily useful for when you're using
 ```
 **dataref_metadata**
 
-```json
+```javascript
 {
-	"name_of_assocated_dataref": {
+	"<name_of_dataref>": {
 		alias: String,
 		control: "slider" | "segmented",
 		
 		// Applies to "slider" only:
 		testing_range: { start: Number, end: Number },
-        step: Number,
+		step: Number,
        
-        // Applies to "segmented" only
-        segments: Array of { name: String, value: Number }
+        	// Applies to "segmented" only
+        	segments: Array of { name: String, value: Number }
 	}
 }
 
@@ -197,5 +197,5 @@ const metadata = {
 ```
 
 |Radio Buttons and Sliders|
-|---|---|
+|---|
 |![Custom input 1](tutorial-assets/custom1.png)|

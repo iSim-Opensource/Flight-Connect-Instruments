@@ -90,28 +90,28 @@ Add the following code to ```airspeed.js```. The code takes advantage of a numbe
 
 * Define width and height of the gauge in the window. To change instrumemnt size, simply change these number.
 
-```
+```javascript
 const INSTRUMENT_WIDTH = 240; //px
 const INSTRUMENT_HEIGHT = 240; //px
 ```
 
 * Get reference to image elements. The name of the image (eg `needle` shall be the same as refered in `index.html` by id: `<img src="assets/airspeedback.png" alt="" id="back">`
 
-```
+```javascript
 const back = document.getElementById("back");
 const needle = document.getElementById("needle");
 ```
 
 * Center the images in the window
 
-```
+```javascript
 utils_centerElement(back, INSTRUMENT_WIDTH, INSTRUMENT_HEIGHT);
 utils_centerElement(needle, INSTRUMENT_WIDTH, INSTRUMENT_HEIGHT);
 ```
 
 * Given an airspeed, calculate degrees of rotation for the needle.
 
-```
+```javascript
 function degreesForKnots(airspeed) {
 
     let degreesTotal = 0.0;
@@ -133,7 +133,7 @@ function degreesForKnots(airspeed) {
 
 * Define function that will apply the needle rotation
 
-```
+```javascript
 function rotateNeedle(airspeed) {
     const rotation = degreesForKnots(airspeed);
     // Apply a rotation transformation to the image
@@ -143,14 +143,14 @@ function rotateNeedle(airspeed) {
 
 * Connect to Flight-Connect. You can update the name and identifier. 
 
-```
+```javascript
 new AppConnection(__configuredHost, { name: "Tutorial", identifier: "airspeed" }, (connection) => {
 ```
 
  
 * Subscribe to X-Plane dataref `sim/cockpit2/gauges/indicators/airspeed_kts_pilot` with rotateNeedle callback/function. 
  
- ```   
+ ```javascript
     connection.datarefSubscribe(
         rotateNeedle, this, 
         "sim/cockpit2/gauges/indicators/airspeed_kts_pilot"
@@ -188,6 +188,10 @@ You forgot to, or incorrectly loaded host.js or your shared folder is missing. T
 ### My instrument doesn't respond / dataref always returns zero
 
 The most likely cause of this is a typo in, or invalid dataref name in your subscription call. A way to debug this is to connect your instrument to the flight connect application. If it is not a recognised dataref then there will be no description or unit available.
+
+### My instrument doesn't work and I'm using Safari
+
+Safari can sometimes have issues loading instruments from file. Safari can however load instruments when opened with the 'open in browser' button in Flight-Connect. Otherwise use Firefox or Chrome for development.
 
 ## Connecting your instrument to X-Plane
 1. Place the Flight-Connect plugin inside your X-Plane plugins directory. (```X-Plane 11/Resources/plugins```)
