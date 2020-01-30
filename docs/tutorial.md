@@ -90,28 +90,28 @@ Add the following code to ```airspeed.js```. The code takes advantage of a numbe
 
 * Define width and height of the gauge in the window. To change instrumemnt size, simply change these number.
 
-```
+```javascript
 const INSTRUMENT_WIDTH = 240; //px
 const INSTRUMENT_HEIGHT = 240; //px
 ```
 
 * Get reference to image elements. The name of the image (eg `needle` shall be the same as refered in `index.html` by id: `<img src="assets/airspeedback.png" alt="" id="back">`
 
-```
+```javascript
 const back = document.getElementById("back");
 const needle = document.getElementById("needle");
 ```
 
 * Center the images in the window
 
-```
+```javascript
 utils_centerElement(back, INSTRUMENT_WIDTH, INSTRUMENT_HEIGHT);
 utils_centerElement(needle, INSTRUMENT_WIDTH, INSTRUMENT_HEIGHT);
 ```
 
 * Given an airspeed, calculate degrees of rotation for the needle.
 
-```
+```javascript
 function degreesForKnots(airspeed) {
 
     let degreesTotal = 0.0;
@@ -133,7 +133,7 @@ function degreesForKnots(airspeed) {
 
 * Define function that will apply the needle rotation
 
-```
+```javascript
 function rotateNeedle(airspeed) {
     const rotation = degreesForKnots(airspeed);
     // Apply a rotation transformation to the image
@@ -143,14 +143,14 @@ function rotateNeedle(airspeed) {
 
 * Connect to Flight-Connect. You can update the name and identifier. 
 
-```
+```javascript
 new AppConnection(__configuredHost, { name: "Tutorial", identifier: "airspeed" }, (connection) => {
 ```
 
  
 * Subscribe to X-Plane dataref `sim/cockpit2/gauges/indicators/airspeed_kts_pilot` with rotateNeedle callback/function. 
  
- ```   
+ ```javascript
     connection.datarefSubscribe(
         rotateNeedle, this, 
         "sim/cockpit2/gauges/indicators/airspeed_kts_pilot"
