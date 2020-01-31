@@ -7,7 +7,7 @@ This tutorial will guide you through the steps to create an airspeed indicator u
 * [Javascript basics](https://developer.mozilla.org/en-US/docs/Learn/Getting_started_with_the_web/JavaScript_basics)
 * [w3schools.com](https://www.w3schools.com) a good site for reference
 
-A video version of this tutorial is available [add link here]() if you prefer or want to follow along in tandem.
+A  [video version of this tutorial is available here](https://youtu.be/tGFvermKCfc) if you prefer or want to follow along in tandem.
 
 ## What you need
 * A text editor - I recommend [Visual Studio Code](https://code.visualstudio.com), but almost anything will work.
