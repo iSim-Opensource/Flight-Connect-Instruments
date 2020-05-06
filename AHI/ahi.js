@@ -73,6 +73,8 @@ function newAttitude(roll, pitch, APMode, FDPitch, FDRoll, fail, horizAdj) {
     if (fail == 6) {
         return;
     }
+
+    showGyroFlag(fail);
     
     // Roll outer ring
     let rollDeg = utils_constrain(roll, -180, 180) * -1;
@@ -143,10 +145,5 @@ let connection = new AppConnection(__configuredHost, { name: "Attitude", identif
         "sim/cockpit2/autopilot/flight_director_roll_deg",
         "sim/operation/failures/rel_ss_ahz",
         "sim/cockpit/misc/ah_adjust",
-    );
-    
-    connection.datarefSubscribe(
-        showGyroFlag, this,
-        "sim/operation/failures/rel_ss_ahz",
     );
 });

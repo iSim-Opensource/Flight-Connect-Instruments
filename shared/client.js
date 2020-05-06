@@ -24,28 +24,59 @@ class AppConnection {
         const getURL = (port) => {
             return `ws://${ip}:${port}`;
         }
-     
+
         let _socket = new WebSocket(getURL(portToTry));
         this.ready = false;
         this.firstResponse = true;
         this.identifier = null;
 
-        var state = {};
+        this.state = {};
 
         // The array of subscribers
         this.globalDatarefs = {}; // Obj containing unique datarefs that have been subscribed to
-        this.keySets = {};
+        this.keySets = [];
+        this.timeOfLastMessage = new Date().getTime();
+        this.timeSinceLastMessage = 0;
+
+        // Event callbacks
+        this.onTimeoutCallback = null;
+        this.onLoadingStateChanges = null;
+
+        // Once time dataref request callbacks
+        this.drRequestCallbacks = [];
+
+        // Command callbacks
+        this.commandCallbacks = {};
+
+        this.xplaneProbablyIsLoading = true;
+
+        const logMessageTime = () => {
+
+            // const now = new Date().getTime();
+            // this.timeSinceLastMessage = now - this.timeOfLastMessage;
+            // this.xplaneProbablyIsLoading = (this.timeSinceLastMessage > 2000);
+            console.log(`${this.timeSinceLastMessage}ms`);
+
+            this.onLoadingStateChanges && this.onLoadingStateChanges(this.xplaneProbablyIsLoading);
+
+            setTimeout(logMessageTime, 1000);
+        }
 
         const addListeners = (sock) => {
 
             sock.onopen = (event) => {
                 this.ready = true;
+                // logMessageTime();
             };
             sock.onmessage = (event) => {
-                let shouldReload = false;
-                if (this.firstResponse) {
-                    let res = JSON.parse(event.data);
-                    if (res.type == "LOG") {
+
+                const now = new Date().getTime();
+                // this.timeSinceLastMessage = now - this.timeOfLastMessage;
+                this.timeOfLastMessage = now;
+                const res = JSON.parse(event.data);
+
+                if (this.identifier === null) {
+                    if (res.type === "LOG") {
                         console.warn(res.value);
                         if (res.value === "Subscription limit for free trial version exceeded") {
                             const elem = document.createElement('div');
@@ -55,43 +86,72 @@ class AppConnection {
                         }
                         return;
                     }
-                    else if (res.type == "ID") {
+                    else if (res.type === "ID") {
                         this.identifier = res.value;
                         console.log("identifier: " + res.value);
                         this._sendIdentity(metadata)
                         onReady(this);
                         return;
                     }
-                    else if (res.type == "RES") {
-                        for (let key of Object.keys(res.value)) {
-                            if(res.value[key] == "null") {
-                                shouldReload = false;
-                                console.warn("Invalid dataref: " + key);
+                }
+                else {
+                    switch (res.type) {
+                    case "RES": {
+                        // For each subscriber, check whether any of the requested datarefs have changed
+                        // If they have, call the function
+                        
+                        var subscriber;
+                        var changes = false;
+                        for (var i = 0; i < this.keySets.length; i++) {
+                            subscriber = this.keySets[i];
+
+                            // Check for Ch-ch-ch-ch-changes
+                            changes = false;
+                            for (let key of subscriber.datarefs) {
+                                if (res.value[key] !== this.state[key] || res.value[key] !== undefined) {
+                                    changes = true;
+                                    break;
+                                }
                             }
-                            if (shouldReload) {
-                                console.warn("Window will reload in 5 seconds");
-                                window.setTimeout(window.location.reload.bind(window.location), 5000);
-                                break;
+                            if (changes) {
+                                // If the minimum time has elapsed
+                                if (subscriber.minDeltaTime !== 0) { 
+                                    if (now - subscriber.timeOfLast < subscriber.minDeltaTime * 1000) {
+                                        break;
+                                    }
+                                }
+
+                                const results = [];
+                                for (const key of subscriber.datarefs) {
+                                    let val = res.value[key] || this.state[key];
+                                    if (val === undefined) {
+                                        val = 0;
+                                    }
+                                    results.push(val);
+                                }
+                                // Call it with the values
+                                subscriber.timeOfLast = now;
+                                subscriber.function.apply(subscriber.this, results);
                             }
                         }
-                        this.firstResponse = false;
+                        this.state = Object.assign(this.state, res.value);
+                        break;
                     }
-                }
-                if (!shouldReload && this.identifier !== null) {
-
-                    // Parse the latest data
-                    let diff = JSON.parse(event.data);
-                    if (diff.type == "LOG") {
-                        console.warn(diff.value);
-                        return;
+                    case "COMMAND": {
+                        Object.values(this.commandCallbacks[res.value]).forEach(f => f());
+                        break;
                     }
-                    if (typeof diff.value === 'undefined') {
-                        console.warn("Problem with response")
-                        return;
+                    case "ONCE": {
+                        this.drRequestCallbacks.shift()(res.value);
+                        break;
                     }
-                    if (diff.type == "CHNGCONN") {
-                        const newPort = diff.value.port;
-                        const newHost = diff.value.host;
+                    case "LOG": {
+                        console.warn(res.value);
+                        break;
+                    }
+                    case "CHNGCONN": {
+                        const newPort = res.value.port;
+                        const newHost = res.value.host;
                         ip = newHost;
 
                         if (typeof newPort !== 'undefined' && newPort != null &&
@@ -101,69 +161,38 @@ class AppConnection {
                             const newSock = new WebSocket(`ws://${newHost}:${newPort}`);
                             addListeners(newSock);
                             this.socket.close();
-                            this.firstResponse = true;
+                            this.identifier = null;
                             this.socket = newSock;
                         }
-                        return;
+                        break;
                     }
-
-                    // Note which datarefs have new values
-                    let valuesChanged = {};
-                    Object.keys(diff.value).forEach((key) => {
-                        valuesChanged[key] = (state[key] != diff.value[key]);
-                    });
-        
-                    // Update the master state
-                    state = Object.assign(state, diff.value);
-                    
-                    // For each subscriber, check whether any of the requested datarefs have changed
-                    // If they have, call the function
-                    for (let item of Object.keys(this.keySets)) {
-
-                        const val = this.keySets[item]
-        
-                        var changes = false;
-                        for (let key of val.datarefs) {
-                            if (valuesChanged[key] == true) {
-                                changes = true;
-                                break;
-                            } 
-                        }
-                        if (changes) {
-                            // Use map to convert the array of dataref keys into their respective values
-                            let results = val.datarefs.map((key) => {
-                                // If it's an array dataref, it must be parsed from string form
-                                if (String(state[key]).startsWith('[')) {
-                                    state[key] = JSON.parse(state[key]);
-                                }
-                                return state[key];
-                            });
-                            // Call it with the values
-                            val.function.apply(val.this, results);
-                        }
+                    default:
+                        console.warn("Problem with response")
+                        break;
                     }
-                }      
+                }
             };
             sock.onerror = () => {
-                console.warn('Unspecified error with socket')
+                console.warn('Unspecified error with socket');
+                this.onTimeoutCallback && this.onTimeoutCallback();
             };
             sock.onclose = (event) => {
                 switch (event.code) {
-                    case 1006:
-                        setTimeout(() => {
-                            console.log('Reconnecting...');
-                            portToTry = (portToTry === connectionConfigs.FC_PORT) 
-                                ? connectionConfigs.XPLANE_PORT : connectionConfigs.FC_PORT;
+                case 1006:
+                    setTimeout(() => {
+                        console.log('Reconnecting...');
+                        portToTry = (portToTry === connectionConfigs.FC_PORT)
+                            ? connectionConfigs.XPLANE_PORT : connectionConfigs.FC_PORT;
 
-                            _socket = new WebSocket(getURL(portToTry));
-                            this.firstResponse = true;
-                            this.identifier = null;
-                            addListeners(_socket);
-                            this.socket = _socket;
-                        }, 5000);
-                        break;
-                    default:
-                        break;
+                        _socket = new WebSocket(getURL(portToTry));
+                        this.firstResponse = true;
+                        this.identifier = null;
+                        addListeners(_socket);
+                        this.socket = _socket;
+                    }, 5000);
+                    break;
+                default:
+                    break;
                 }
             };
         }
@@ -173,150 +202,224 @@ class AppConnection {
     }
 
     setDataref(dataref, type, value) {
-        const message = {
+        this.sendMessage({
             id: this.identifier,
             command: "SET",
             dataref: dataref,
 	        data: String(value),
 	        type: type,
-        }
-        try {
-            this.socket.send(JSON.stringify(message));
-        } catch {
-            console.warn("Problem with socket, reloading page in 5s");
-            window.setTimeout(window.location.reload.bind(window.location), 5000);
-        }
+        });
+    }
+
+    getDatarefs(datarefs, callback) {
+        this.drRequestCallbacks.push(callback);
+        this.sendMessage({
+            data: datarefs,
+            command: "GET_ONCE",
+            id: this.identifier,
+        });
     }
 
     setArrayDataref(dataref, type, array, offset) {
 
         if (type==="INT") { type = "INT_ARRAY"; }
         if (type==="FLOAT") { type = "FLOAT_ARRAY"; }
-        if (type != "FLOAT_ARRAY" && type != "INT_ARRAY") { throw "Type must be INT_ARRAY or FLOAT_ARRAY" }
+        if (type !== "FLOAT_ARRAY" && type !== "INT_ARRAY") { throw "Type must be INT_ARRAY or FLOAT_ARRAY" }
 
-        // null elements of the array wont overwrite existing values in the array on the host       ?
-        const message = {
+        this.sendMessage({
             id: this.identifier,
             command: "ASET",
             dataref: dataref,
             type: type,
             data: array,
             offset: offset
-        };
-        try {
-            this.socket.send(JSON.stringify(message));
-        } catch {
-            console.warn("Problem with socket, reloading page in 5s");
-            window.setTimeout(window.location.reload.bind(window.location), 5000);
+        });
+    }
+
+    on(event, call) {
+        if (event === 'loadingStateChanges') {
+            this.onLoadingStateChanges = call;
         }
+        else if (event === 'connectionTimeout') {
+            this.onTimeoutCallback = call;
+        }
+    }
+
+    registerCommandCallback(command, callback) {
+
+        // Prepare to receive
+        const cbid = this._uuidv4();
+        if (this.commandCallbacks.hasOwnProperty(command)) {
+            this.commandCallbacks[command][cbid] = callback;
+        } else {
+            this.commandCallbacks[command] = { [cbid]: callback };  
+        }
+
+        // Send subscribe message
+        this.sendMessage({
+            command: "REGISTER_CMD_CALLBACK",
+            data: command,
+        });
+
+        // Return the id used to unsubscribe
+        return cbid;
+    }
+
+    removeCommandCallback(command, cbid) {
+        delete this.commandCallbacks[command][cbid];
     }
 
     moveToAirport(icao) {
-        const message = {
+        this.sendMessage({
             id: this.identifier,
             command: "REPOSITION",
             data: icao,
-        }
-        try {
-            this.socket.send(JSON.stringify(message));
-        } catch {
-            console.warn("Problem with socket, reloading page in 5s");
-            window.setTimeout(window.location.reload.bind(window.location), 5000);
-        }
+        });
+    }
+
+    moveToPosition(lat, lon, hdg, alt, speed, fast) {
+        this.sendMessage({
+            id: this.identifier,
+            command: "REPOSITION",
+            data: { lat, lon, hdg, alt, speed, fast }
+        });
     }
 
     runCommand(name) {
-        const message = {
+        this.sendMessage({
             id: this.identifier,
             command: "RUN_COMMAND",
             data: name,
-        }
-        try {
-            this.socket.send(JSON.stringify(message));
-        } catch {
-            console.warn("Problem with socket, reloading page in 5s");
-            window.setTimeout(window.location.reload.bind(window.location), 5000);
-        }
+        });
     }
 
-    _sendSubscribeMessage() {
+    commandOnce(name) {
+        this.runCommand(name);
+    }
 
-        const message = {
+    commandBegin(name) {
+        this.sendMessage({
             id: this.identifier,
-            command: "SUBSCRIBE",
-            data: Object.keys(this.globalDatarefs),
-        }
-        console.log(JSON.stringify(message));
-
-        try {
-            this.socket.send(JSON.stringify(message));
-        } catch {
-            console.warn("Problem with socket, reloading page in 5s");
-            window.setTimeout(window.location.reload.bind(window.location), 5000);
-        }
+            command: "RUN_COMMAND",
+            data: name,
+            type: 1,
+        });
     }
 
-    // 2.0
+    commandEnd(name) {
+        this.sendMessage({
+            id: this.identifier,
+            command: "RUN_COMMAND",
+            data: name,
+            type: 1,
+        });
+    }
+
+    commandForDuration(name, durationMs) {
+        this.commandBegin(name);
+        setTimeout(() => {
+            this.commandEnd(name);
+        }, durationMs);
+    }
 
     // From https://stackoverflow.com/a/2117523
     _uuidv4() {
         return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-          (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
         );
     }
 
-    datarefSubscribe(func, context, ...datarefs) {
+    datarefSubscribeWithPrecision({ func, minDeltaTime, precision, datarefs}) {
+        if (typeof minDeltaTime === 'undefined')
+            minDeltaTime = 0;
 
         const uuid = this._uuidv4()
-        let res = {};
-        res["name"] = uuid;
-        res["datarefs"] = datarefs;
-        res["function"] = func;
-        res["this"] = context;
-      
-        // Update the global dataref
-        const reducer = (acc, val) => {
-            acc[val] = val;
-            return acc;
+        let res = {
+            minDeltaTime,
+            timeOfLast: new Date().getTime(),
+            datarefs: datarefs,
+            name: uuid,
+            "function": func,
+            "this": window,
+        };
+        this.keySets.push(res);
+
+        // Initialise dataref state to zero
+        for (let dataref of datarefs) {
+            this.state[dataref] = 0;
         }
-        const drObj = datarefs.reduce(reducer, {});
-        Object.assign(this.globalDatarefs, drObj);
 
-        this._sendSubscribeMessage();
+        // Send
+        this.sendMessage({
+            id: this.identifier,
+            command: "SUBSCRIBE",
+            precision: precision || 0,
+            data: datarefs,
+        });
+    }
 
-        this.keySets[uuid] = res;
+    datarefSubscribe(func, minDeltaTime, ...datarefs) {
+
+        if (typeof minDeltaTime === 'undefined')
+            minDeltaTime = 0;
+
+        const uuid = this._uuidv4()
+        let res = {
+            minDeltaTime,
+            timeOfLast: new Date().getTime(),
+            datarefs: datarefs,
+            name: uuid,
+            "function": func,
+            "this": window,
+        };
+        this.keySets.push(res);
+
+        // Send
+        const message = {
+            id: this.identifier,
+            command: "SUBSCRIBE",
+            precision: 0.01,
+            data: [...datarefs],
+        }
+        this.sendMessage(message);
+    }
+
+    sendMessage(objectToSerialize) {
+        console.log(objectToSerialize)
+        try {
+            this.socket.send(JSON.stringify(objectToSerialize));
+        } catch {
+            console.warn("Problem with socket, reloading page in 5s");
+            window.setTimeout(window.location.reload.bind(window.location), 5000);
+        }
     }
 
     _sendIdentity(metadata) {
-        //const msg = `${this.identifier}:IDENTIFY:${JSON.stringify(metadata)}`;
         const message = {
             id: this.identifier,
             command: "IDENTIFY",
             data: metadata,
         }
-        try {
-            this.socket.send(JSON.stringify(message));
-        } catch {
-            console.warn("Problem with socket, reloading page in 5s");
-            window.setTimeout(window.location.reload.bind(window.location), 5000);
-        }
+        this.sendMessage(message);
+    }
+}
+
+function utils_setElemSize(element, width, height) {
+    if (typeof width === 'number') {
+        element.style.width = `${width}px`;
+    } else {
+        element.style.width = width;
+    }
+    if (typeof height === 'number') {
+        element.style.height = `${height}px`;
+    } else {
+        element.style.height = height;
     }
 }
 
 /**
- * Set element width and height CSS properties
- * @param {element} element 
- * @param {number} width 
- * @param {number} height 
- */
-function utils_setElemSize(element, width, height) {
-    element.style.width = `${width}px`;
-    element.style.height = `${height}px`;
-}
-
-/**
  * Get the length of the shortest side of the window
- * @returns {number}
+ * @returns {Number}
  */
 function utils_getWindowShortestSideLength({ margin = 0 } = {}) {
     const width = window.innerWidth;
@@ -326,9 +429,9 @@ function utils_getWindowShortestSideLength({ margin = 0 } = {}) {
 
 /**
 * Center an element in the middle of the window, given the size you want the element to be.
- * @param {element} elem 
- * @param {number} elementWidth 
- * @param {number} elementHeight
+ * @param {Element} elem 
+ * @param {Number} elementWidth 
+ * @param {Number} elementHeight
  */
 function utils_centerElement(elem, elementWidth, elementHeight) {
     elem.style.position = "absolute";
@@ -338,11 +441,17 @@ function utils_centerElement(elem, elementWidth, elementHeight) {
     elem.style.left = `${(window.innerWidth - elementWidth) / 2}px`;
 }
 
+function utils_centerElementIn(elem, inside) {
+    elem.style.position = "absolute";
+    elem.style.top = `${(inside.offsetHeight - elem.offsetHeight) / 2}px`;
+    elem.style.left = `${(inside.offsetWidth - elem.offsetWidth) / 2}px`;
+}
+
 /**
  * Constrain a value to be between min and max
- * @param {number} value Input value
- * @param {number} min Returned if input value < min
- * @param {number} max Returned if input value > max
+ * @param {Number} value Input value
+ * @param {Number} min Returned if input value < min
+ * @param {Number} max Returned if input value > max
  */
 function utils_constrain(value, min, max) {
     value = Number(value);
@@ -358,9 +467,9 @@ function utils_constrain(value, min, max) {
 /**
  * The absolute value of the amount of *value* constrained between max and min.
  * @example utils_amountBetween(75, 50, 100) -> 25
- * @param {number} value 
- * @param {number} min 
- * @param {number} max 
+ * @param {Number} value 
+ * @param {Number} min 
+ * @param {Number} max 
  */
 function utils_amountBetween(value, min, max) {
 	if (value < min)
@@ -375,8 +484,8 @@ function utils_amountBetween(value, min, max) {
 /**
  * Rotate an element using the CSS transform property
  * 
- * @param {element} elem The element to rotate
- * @param {number} degrees Degrees to rotate the element
+ * @param {Element} elem The element to rotate
+ * @param {Number} degrees Degrees to rotate the element
  */
 function utils_rotate(elem, degrees) {
     elem.style.transform = `rotate(${degrees}deg)`;
@@ -385,7 +494,7 @@ function utils_rotate(elem, degrees) {
 /**
  * Get the x and y position of an element in pixels from the origin (top left)
  * 
- * @param {element} elem 
+ * @param {Element} elem 
  * @returns {{x: Number, y: Number}}
  */
 function utils_getElemPos(elem) {
@@ -400,9 +509,9 @@ function utils_getElemPos(elem) {
  * Set the x and y position of an element in pixels from the origin (top left)
  * Uses CSS 'left' and 'top' attributes with position absolute.
  * 
- * @param {element} elem The element to set the position of
- * @param {number} x The X position in pixels to set
- * @param {number} y The Y position in pixels to set
+ * @param {Element} elem The element to set the position of
+ * @param {Number} x The X position in pixels to set
+ * @param {Number} y The Y position in pixels to set
  */
 function utils_setElemPos(elem, x, y) {
     elem.style.position = 'absolute';
@@ -412,9 +521,9 @@ function utils_setElemPos(elem, x, y) {
 
 /**
  * Moves an element by the given number of pixels from it's current position
- * @param {element} elem The element to move
- * @param {number} x Pixels to move on X axis
- * @param {number} y Pixels to move on Y axis
+ * @param {Element} elem The element to move
+ * @param {Number} x Pixels to move on X axis
+ * @param {Number} y Pixels to move on Y axis
  */
 function utils_moveElemBy(elem, x, y) {
     let startPos = utils_getElemPos(elem);
@@ -425,7 +534,7 @@ function utils_moveElemBy(elem, x, y) {
 
 /**
  * Sets an element's css visiblity property to 'visible' or 'hidden'
- * @param {element} elem The element
+ * @param {Element} elem The element
  * @param {Boolean} bool Whether or not to make it visible or invisible
  */
 function utils_setVisible(elem, bool) {
@@ -436,8 +545,8 @@ function utils_setVisible(elem, bool) {
 
 /**
  * Convert radians to degrees
- * @param {number} radians 
- * @returns {number} degrees
+ * @param {Number} radians 
+ * @returns {Number} degrees
  */
 function utils_radToDeg(radians) {
 
@@ -446,8 +555,8 @@ function utils_radToDeg(radians) {
 
 /**
  * Convert degrees to radians
- * @param {number} degrees 
- * @returns {number} radians
+ * @param {Number} degrees 
+ * @returns {Number} radians
  */
 function utils_degToRad(degrees) {
 
@@ -460,7 +569,7 @@ function utils_degToRad(degrees) {
  * Sets the innerHTML attribute of the element to the given text
  * For more information on this see: https://www.w3schools.com/jsref/prop_html_innerhtml.asp
  * 
- * @param {element} elem The element
+ * @param {Element} elem The element
  * @param {String} text Inner HTML content to set
  */
 function utils_setText(elem, text) {
@@ -471,9 +580,9 @@ function utils_setText(elem, text) {
 /**
  * Sets the inner text of an element to a number with a specified number of decimal places
  * 
- * @param {element} elem The element
- * @param {number} number The number 
- * @param {number} dplaces The number of decimal places to show
+ * @param {Element} elem The element
+ * @param {Number} number The number 
+ * @param {Number} dplaces The number of decimal places to show
  */
 function utils_setTextNumeric(elem, number, dplaces) {
     utils_setText(elem, Number(number).toFixed(dplaces));
@@ -483,7 +592,7 @@ function utils_setTextNumeric(elem, number, dplaces) {
  * Set the colour of an element's text using the CSS color property 
  * Can be name of colour like 'red' or hex value like '#FF0000'
  * 
- * @param {element} elem 
+ * @param {Element} elem 
  * @param {String} colour 
  */
 function utils_setTextColour(elem, colour) {
@@ -491,16 +600,8 @@ function utils_setTextColour(elem, colour) {
     elem.style.color = colour;
 }
 
-/**
- * Create SVG text element at position x, y with the given attributes
- * For more details on attributes see:
- * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text#Attributes
- * @param {string} content Text content
- * @param {number} x 
- * @param {number} y 
- * @param {object} attributes 
- */
-
+// For more details on attributes see:
+// https://developer.mozilla.org/en-US/docs/Web/SVG/Element/text#Attributes
 function utils_createSVGTextElement(content, x, y, attributes = {}) {
 
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -516,17 +617,28 @@ function utils_createSVGTextElement(content, x, y, attributes = {}) {
     return text;
 }
 
-/**
- * /**
- * Create SVG rect element with the given attributes
- * For more details on attributes see:
- * https://developer.mozilla.org/en-US/docs/Web/SVG/Element/rect
- * @param {number} x 
- * @param {number} y 
- * @param {number} width 
- * @param {number} height 
- * @param {object} attributes 
- */
+function utils_SVGApplyAttributes(svg, attributes = {}) {
+    Object.keys(attributes).forEach(key => {
+        svg.setAttribute(key, attributes[key]);
+    });
+}
+
+function utils_createSVGElementWithAttributes(type, attributes) {
+
+    const element = document.createElementNS("http://www.w3.org/2000/svg", type);
+
+    Object.keys(attributes).forEach(key => {
+        element.setAttribute(key, attributes[key]);
+    });
+
+    return element;
+}
+
+function utils_updateSVGTextContent(svgTextElement, content) {
+    svgTextElement.childNodes[0].nodeValue = content;
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/SVG/Element/rect
 function utils_createSVGRectElement(x, y, width, height, attributes = {}) {
     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     rect.setAttribute('x', x);
@@ -545,7 +657,7 @@ function utils_createSVGRectElement(x, y, width, height, attributes = {}) {
 
 /**
  * Loop a piece of audio
- * @param {element} audio 
+ * @param {Element} audio 
  */
 function utils_loopAudio(audio) {
     audio.loop = true;
@@ -554,7 +666,7 @@ function utils_loopAudio(audio) {
 
 /**
  * Stop looping the audio element
- * @param {element} audio 
+ * @param {Element} audio 
  */
 function utils_stopLooping(audio) {
     audio.loop = false;
