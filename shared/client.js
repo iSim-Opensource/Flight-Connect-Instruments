@@ -162,6 +162,7 @@ class AppConnection {
                             addListeners(newSock);
                             this.socket.close();
                             this.identifier = null;
+                            this.commandCallbacks = {};
                             this.socket = newSock;
                         }
                         break;
@@ -290,6 +291,7 @@ class AppConnection {
             id: this.identifier,
             command: "RUN_COMMAND",
             data: name,
+            type: 0,
         });
     }
 
@@ -311,7 +313,7 @@ class AppConnection {
             id: this.identifier,
             command: "RUN_COMMAND",
             data: name,
-            type: 1,
+            type: 2,
         });
     }
 
